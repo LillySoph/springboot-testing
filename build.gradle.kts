@@ -28,6 +28,7 @@ dependencies {
 	// apache poi
 	implementation("org.apache.poi:poi:5.2.3")
 	implementation("org.apache.poi:poi-ooxml:5.2.3")
+	implementation("org.apache.poi:poi-scratchpad:5.2.3")
 	//implementation("org.apache.poi:poi-ooxml-schema:5.2.3")
 	compileOnly("org.projectlombok:lombok")
 	runtimeOnly("com.h2database:h2")

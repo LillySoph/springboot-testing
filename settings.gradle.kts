@@ -1,1 +1,1 @@
-rootProject.name = "WebApplication"
+rootProject.name = "SpringBootTesting"

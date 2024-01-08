@@ -1,4 +1,4 @@
-package lilly.testing.webapplication;
+package lilly.testing.springboottesting;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
