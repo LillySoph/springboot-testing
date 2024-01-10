@@ -30,6 +30,10 @@ dependencies {
 	implementation("org.apache.poi:poi-ooxml:5.2.3")
 	implementation("org.apache.poi:poi-scratchpad:5.2.3")
 	//implementation("org.apache.poi:poi-ooxml-schema:5.2.3")
+	// https://mvnrepository.com/artifact/org.json/json
+	implementation("org.json:json:20231013")
+	// https://mvnrepository.com/artifact/com.googlecode.json-simple/json-simple
+	implementation("com.googlecode.json-simple:json-simple:1.1.1")
 	compileOnly("org.projectlombok:lombok")
 	runtimeOnly("com.h2database:h2")
 	annotationProcessor("org.projectlombok:lombok")

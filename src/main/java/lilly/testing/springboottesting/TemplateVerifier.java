@@ -13,9 +13,76 @@ import java.util.List;
 public class TemplateVerifier {
 
     private File file;
-    List<String> allBookmarks = new ArrayList<String>();
+    List<String> allBookmarks = new ArrayList<>();
+
+    List<String> allVariables = new ArrayList<>();
     private XWPFDocument document;
-    public void verifyTemplate(String fileName) throws IOException {
+
+    public void validateVariableTemplate(String fileName) throws IOException {
+        // check if file exists
+        this.file = new File(fileName);
+        if (!file.exists()) {
+            throw new FileNotFoundException("Die Datei '" + fileName + "' konnte nicht gefunden werden.");
+        }
+        // load file into XWPF doc, check for variables and output findings in txt
+        try(FileInputStream fis = new FileInputStream(this.file)) {
+            this.document = new XWPFDocument(fis);
+            findVariables();
+            File resultFile = new File("d:\\Projekte\\SpringBootTesting\\generated\\result_of_variable_check.txt");
+            BufferedWriter writer = new BufferedWriter(new FileWriter(resultFile));
+            writer.write("--- Die folgenden Variablen wurden in der Datei '" + fileName + "' gefunden ---");
+            for (String variable : this.allVariables) {
+                writer.write("\n" + variable);
+            }
+            writer.write("\n--- Sollte eine Variable fehlen, bitte die Vorlagendatei nochmal pruefen und ggf. neu einfuegen ---");
+            writer.write("\n--- Bitte beachten: Pro Zeile darf nur eine Variable existieren ---");
+            writer.close();
+        }
+    }
+
+    private void findVariables() {
+        // checking header
+        for (XWPFHeader header : this.document.getHeaderList()) {
+            checkBodyElementsForVariables(header.getBodyElements());
+        }
+        // checking document
+        checkBodyElementsForVariables(this.document.getBodyElements());
+        // checking footer
+        for (XWPFFooter footer : this.document.getFooterList()) {
+            checkBodyElementsForVariables(footer.getBodyElements());
+        }
+    }
+
+
+    private void checkBodyElementsForVariables(List<IBodyElement> bodyElements) {
+        for (IBodyElement element : bodyElements) {
+            // check paragraphs
+            if (element instanceof XWPFParagraph) {
+                checkParagraphForVariables((XWPFParagraph) element);
+            }
+            // check tables
+            else if (element instanceof XWPFTable) {
+                for (XWPFTableRow row : ((XWPFTable) element).getRows()) {
+                    for (XWPFTableCell cell : row.getTableCells()) {
+                        for (XWPFParagraph paragraph : cell.getParagraphs()) {
+                            checkParagraphForVariables(paragraph);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void checkParagraphForVariables(XWPFParagraph paragraph) {
+        for (XWPFRun run : paragraph.getRuns()) {
+            System.out.println("RUN: [" + run.getText(0) + "]");
+            if (run.text().matches("(\\$\\w+)")) {
+                allVariables.add(run.text());
+            }
+        }
+    }
+
+    public void validateBookmarkTemplate(String fileName) throws IOException {
         // check if file exists
         this.file = new File(fileName);
         if (!file.exists()) {
@@ -27,38 +94,41 @@ public class TemplateVerifier {
             findBookmarks();
             File resultFile = new File("d:\\Projekte\\SpringBootTesting\\generated\\result_of_bookmark_check.txt");
             BufferedWriter writer = new BufferedWriter(new FileWriter(resultFile));
-            writer.write("--- Diese Textmarken wurden in der Datei '" + fileName + "' gefunden ---");
+            writer.write("--- Die folgenden Textmarken wurden in der Datei '" + fileName + "' gefunden ---");
             for (String bookmark : this.allBookmarks) {
                 writer.write("\n" + bookmark);
             }
-            writer.write("\n--- DATEIENDE ---");
+            writer.write("\n--- Sollte eine Textmarke fehlen, bitte die Vorlagendatei nochmal pruefen und ggf. neu einfuegen ---");
+            writer.write("\n--- Bitte beachten: Pro Zeile darf nur eine Textmarke existieren ---");
             writer.close();
         }
     }
 
     private void findBookmarks() {
-        // checking Header
+        // checking header
         for (XWPFHeader header : this.document.getHeaderList()) {
-            checkBodyElements(header.getBodyElements());
+            checkBodyElementsForBookmarks(header.getBodyElements());
         }
-        // checking Document
-        checkBodyElements(this.document.getBodyElements());
-        // checking Footer
+        // checking document
+        checkBodyElementsForBookmarks(this.document.getBodyElements());
+        // checking footer
         for (XWPFFooter footer : this.document.getFooterList()) {
-            checkBodyElements(footer.getBodyElements());
+            checkBodyElementsForBookmarks(footer.getBodyElements());
         }
     }
 
-    private void checkBodyElements(List<IBodyElement> bodyElements) {
+    private void checkBodyElementsForBookmarks(List<IBodyElement> bodyElements) {
         for (IBodyElement element : bodyElements) {
+            // check paragraphs
             if (element instanceof XWPFParagraph) {
-                checkParagraph((XWPFParagraph) element);
+                checkParagraphForBookmarks((XWPFParagraph) element);
             }
+            // check tables
             else if (element instanceof XWPFTable) {
                 for (XWPFTableRow row : ((XWPFTable) element).getRows()) {
                     for (XWPFTableCell cell : row.getTableCells()) {
                         for (XWPFParagraph paragraph : cell.getParagraphs()) {
-                            checkParagraph(paragraph);
+                            checkParagraphForBookmarks(paragraph);
                         }
                     }
                 }
@@ -66,7 +136,7 @@ public class TemplateVerifier {
         }
     }
 
-    private void checkParagraph(XWPFParagraph paragraph) {
+    private void checkParagraphForBookmarks(XWPFParagraph paragraph) {
         List<CTBookmark> bookmarkList = paragraph.getCTP().getBookmarkStartList();
         if (bookmarkList != null) {
             for (CTBookmark bookmark : bookmarkList) {
