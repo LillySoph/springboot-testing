@@ -30,10 +30,13 @@ dependencies {
 	implementation("org.apache.poi:poi-ooxml:5.2.3")
 	implementation("org.apache.poi:poi-scratchpad:5.2.3")
 	//implementation("org.apache.poi:poi-ooxml-schema:5.2.3")
-	// https://mvnrepository.com/artifact/org.json/json
-	implementation("org.json:json:20231013")
 	// https://mvnrepository.com/artifact/com.googlecode.json-simple/json-simple
 	implementation("com.googlecode.json-simple:json-simple:1.1.1")
+	// https://mvnrepository.com/artifact/fr.opensagres.xdocreport/fr.opensagres.poi.xwpf.converter.pdf
+	implementation("fr.opensagres.xdocreport:fr.opensagres.poi.xwpf.converter.core:2.0.4")
+	implementation("fr.opensagres.xdocreport:fr.opensagres.poi.xwpf.converter.pdf:2.0.4")
+	// https://mvnrepository.com/artifact/com.itextpdf/itextpdf
+	implementation("com.itextpdf:itextpdf:5.5.13.3")
 	compileOnly("org.projectlombok:lombok")
 	runtimeOnly("com.h2database:h2")
 	annotationProcessor("org.projectlombok:lombok")

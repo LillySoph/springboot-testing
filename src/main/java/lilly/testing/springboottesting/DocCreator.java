@@ -1,6 +1,14 @@
 package lilly.testing.springboottesting;
 
+import com.itextpdf.text.*;
+import com.itextpdf.text.Document;
+import fr.opensagres.poi.xwpf.converter.pdf.PdfConverter;
+import fr.opensagres.poi.xwpf.converter.pdf.PdfOptions;
+
+import com.itextpdf.text.pdf.PdfWriter;
+
 import org.apache.poi.xwpf.usermodel.*;
+
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -19,13 +27,13 @@ public class DocCreator {
     private JSONObject variableReplacement;
     private JSONArray tableContent;
 
-    public void fillTemplate(String template) throws IOException {
+    public void fillTemplate(String templatePath, String docxPath) throws IOException {
         // check if template file exists
-        this.file = new File(template);
+        this.file = new File(templatePath);
         if (!file.exists()) {
-            throw new FileNotFoundException("Die Vorlage '" + template + "' konnte nicht gefunden werden.");
+            throw new FileNotFoundException("Die Vorlage '" + templatePath + "' konnte nicht gefunden werden.");
         }
-        this.outputName = template.replace(".docx", "_filled.docx");
+        this.outputName = docxPath;
         // read data from JSON
         this.variableReplacement = parseJSONObject(PATH + "data.json");
         this.tableContent = parseJSONArray(PATH + "formatted_data.json");
@@ -33,6 +41,78 @@ public class DocCreator {
         try(FileInputStream fis = new FileInputStream(this.file)) {
             this.document = new XWPFDocument(fis);
             updateDocument();
+            //convertXWPFToPdf(PATH + "new.pdf",this.document);
+        }
+    }
+
+    public void itext_convertDocxToPdf(String docxPath, String pdfPath) throws IOException {
+        File docxFile = new File(docxPath);
+        if (!docxFile.exists())
+            throw new FileNotFoundException();
+        try(InputStream inputStream = new FileInputStream(docxFile)) {
+            XWPFDocument document = new XWPFDocument(inputStream);
+            itext_convertXWPFToPdf(pdfPath, document);
+        }
+    }
+
+    public void itext_convertXWPFToPdf(String pdfPath, XWPFDocument xwpfDocument) throws IOException {
+        try(OutputStream outputStream = new FileOutputStream(new File(pdfPath))) {
+            Document document = new Document();
+            PdfWriter.getInstance(document, outputStream);
+            document.addTitle("Converted from DOCX to PDF with IText");
+            document.open();
+            //convertToPDF(document, xwpfDocument);
+            for (XWPFParagraph paragraph : xwpfDocument.getParagraphs()) {
+                document.add(new Paragraph(paragraph.getParagraphText()));
+                System.out.println("[" + paragraph.getParagraphText() + "]");
+                System.out.println("isSetPageBreakBefore() = " + paragraph.getCTPPr().isSetPageBreakBefore());
+
+            }
+            document.close();
+        } catch (DocumentException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void convertToPDF(Document document, XWPFDocument xwpfDocument) {
+        List<IBodyElement> bodyElements = xwpfDocument.getBodyElements();
+
+        // convert headers
+        for (XWPFHeader header : this.document.getHeaderList()) {
+            convertBodyElements(document, header.getBodyElements());
+        }
+        // convert main document
+        convertBodyElements(document, this.document.getBodyElements());
+        // convert footers
+        for (XWPFFooter footer : this.document.getFooterList()) {
+            convertBodyElements(document, footer.getBodyElements());
+        }
+    }
+
+    private void convertBodyElements(Document document, List<IBodyElement> bodyElements) {
+        for (IBodyElement element : bodyElements) {
+            if (element instanceof XWPFParagraph) {
+                replaceVariableInParagraph((XWPFParagraph) element);
+            } else if (element instanceof XWPFTable) {
+                insertTableContent((XWPFTable) element);
+            }
+        }
+    }
+
+    public void opensagres_convertDocxToPdf(String docxPath, String pdfPath) throws IOException {
+        File docxFile = new File(docxPath);
+        if (!docxFile.exists())
+            throw new FileNotFoundException();
+        try(InputStream inputStream = new FileInputStream(docxFile)) {
+            XWPFDocument document = new XWPFDocument(inputStream);
+            opensagres_convertXWPFToPdf(pdfPath, document);
+        }
+    }
+
+    public void opensagres_convertXWPFToPdf(String pdfPath, XWPFDocument document) throws IOException {
+        try(OutputStream outputStream = new FileOutputStream(new File(pdfPath))) {
+            PdfOptions options = PdfOptions.create();
+            PdfConverter.getInstance().convert(document, outputStream, options);
         }
     }
 
@@ -156,7 +236,6 @@ public class DocCreator {
                 JSONObject jsonObject = (JSONObject) jsonArray.get(i);
                 XWPFRun run = paragraph.insertNewRun(i);
                 createFormattedRun(run, jsonObject);
-                System.out.println(jsonArray.get(0));
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());
