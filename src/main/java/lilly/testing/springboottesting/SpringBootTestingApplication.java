@@ -1,5 +1,6 @@
 package lilly.testing.springboottesting;
 
+import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import java.io.IOException;
@@ -15,10 +16,10 @@ public class SpringBootTestingApplication {
 		String pdfPath_itext = path + "BerichtAlsPDF_itext.pdf";
 
 		DocCreator docCreator = new DocCreator();
-		//docCreator.fillTemplate(templatePath, docxPath);
+		docCreator.fillTemplate(templatePath, docxPath);
 		docCreator.opensagres_convertDocxToPdf(docxPath, pdfPath_opensagres);
 		docCreator.itext_convertDocxToPdf(docxPath, pdfPath_itext);
-		//SpringApplication.run(WebApplicationApplication.class, args);
+		SpringApplication.run(SpringBootTestingApplication.class, args);
 	}
 
 }

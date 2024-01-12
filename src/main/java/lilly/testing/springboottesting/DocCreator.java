@@ -7,11 +7,14 @@ import fr.opensagres.poi.xwpf.converter.pdf.PdfOptions;
 
 import com.itextpdf.text.pdf.PdfWriter;
 
+import org.apache.poi.poifs.crypt.HashAlgorithm;
+import org.apache.poi.ss.usermodel.HeaderFooter;
 import org.apache.poi.xwpf.usermodel.*;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STDocProtect;
 
 import java.io.*;
 import java.util.List;
@@ -26,6 +29,10 @@ public class DocCreator {
     private static String PATH = "d:\\Projekte\\SpringBootTesting\\generated\\";
     private JSONObject variableReplacement;
     private JSONArray tableContent;
+    private int NumPage = 0;
+    private int Page = 0;
+
+    int pageCounter = 1;
 
     public void fillTemplate(String templatePath, String docxPath) throws IOException {
         // check if template file exists
@@ -40,8 +47,30 @@ public class DocCreator {
         // load template file into XWPF doc
         try(FileInputStream fis = new FileInputStream(this.file)) {
             this.document = new XWPFDocument(fis);
+            // replace variables and insert table content
             updateDocument();
-            //convertXWPFToPdf(PATH + "new.pdf",this.document);
+            // insert page number into document
+            addPageNumber();
+            // add READ-ONLY protection to document
+            document.getSettings().setEnforcementEditValue(STDocProtect.READ_ONLY, "test", HashAlgorithm.md5);
+            // write updated document in new DOCX file
+            File output = new File(outputName);
+            if (output.exists()) {
+                output.delete();
+            }
+            try (FileOutputStream fos = new FileOutputStream(outputName)) {
+                this.document.write(fos);
+            }
+        }
+    }
+
+    public void addPageNumber() {
+        List<XWPFFooter> list = this.document.getFooterList();
+        System.out.println("footer amount: " + list.size() );
+        for (XWPFFooter footer : this.document.getFooterList()) {
+            for (XWPFParagraph paragraph : footer.getParagraphs()) {
+                paragraph.getCTP().addNewFldSimple().setInstr("PAGE \\* MERGEFORMAT");
+            }
         }
     }
 
@@ -64,8 +93,8 @@ public class DocCreator {
             //convertToPDF(document, xwpfDocument);
             for (XWPFParagraph paragraph : xwpfDocument.getParagraphs()) {
                 document.add(new Paragraph(paragraph.getParagraphText()));
-                System.out.println("[" + paragraph.getParagraphText() + "]");
-                System.out.println("isSetPageBreakBefore() = " + paragraph.getCTPPr().isSetPageBreakBefore());
+                //System.out.println("[" + paragraph.getParagraphText() + "]");
+                //System.out.println("isSetPageBreakBefore() = " + paragraph.getCTPPr().isSetPageBreakBefore());
 
             }
             document.close();
@@ -130,12 +159,16 @@ public class DocCreator {
         for (XWPFFooter footer : this.document.getFooterList()) {
             insertReplacements(footer.getBodyElements());
         }
-        File output = new File(outputName);
-        if (output.exists()) {
-            output.delete();
-        }
-        try (FileOutputStream fos = new FileOutputStream(outputName)) {
-            this.document.write(fos);
+
+    }
+
+    private void printBodyElements(List <IBodyElement> bodyElements) {
+        for (IBodyElement element : bodyElements) {
+            if (element instanceof XWPFParagraph) {
+                System.out.println("paragraph [" + ((XWPFParagraph) element).getText() + "]");
+            } else if (element instanceof XWPFTable) {
+                System.out.println("table [" + ((XWPFTable) element).getText() + "]");
+            }
         }
     }
 
@@ -154,6 +187,7 @@ public class DocCreator {
         if (!paragraph.getText().contains("$")) {
             return;
         }
+
         // extract style from first run in paragraph
         boolean isBold = paragraph.getRuns().get(0).isBold();
         boolean isItalic = paragraph.getRuns().get(0).isItalic();
@@ -240,7 +274,6 @@ public class DocCreator {
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
-
     }
 
     private XWPFRun createFormattedRun(XWPFRun run, JSONObject data) {
